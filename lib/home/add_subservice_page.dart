@@ -23,100 +23,109 @@ class _AddSubServicePageState extends State<AddSubServicePage> {
   TextEditingController _textPriceFieldController = TextEditingController();
   Stream res;
   Future<void> _displayTextInputDialog(BuildContext context) async {
+    setState(() {
+      imgFile=null;
+    });
     return showDialog(
         context: context,
         builder: (context) {
-          return AlertDialog(
+          return StatefulBuilder(
+            builder: (context,setState)
+              {
+                return AlertDialog(
 
-            title: Text('Add Sub Service'),
-            content: Column(
-              children: [
+                  title: Text('Add Sub Service'),
+                  content: Column(
+                    children: [
 
-                TextField(
-                  onChanged: (value) {
-                    setState(() {
-                      valueText = value;
-                    });
-                  },
-                  controller: _textFieldController,
-                  decoration: InputDecoration(hintText: "Sub Service Title"),
-                ),
-
-                TextField(
-                  onChanged: (value) {
-                    setState(() {
-                      valueprice = value;
-                    });
-                  },
-                  controller: _textPriceFieldController,
-                  decoration: InputDecoration(hintText: "Price"),
-                ),
-                SizedBox(height: 10,),
-                Column(
-                  children: [
-                    InkWell(
-                      onTap: ()async{
-                        final res = await FilePicker.platform.pickFiles(type: FileType.image);
-                        final file = res.files.first;
-                        setState(() {
-                          imgFile=file;
-                        });
-
-                      },
-                      child: Container(
-                        height: 30,
-                        width: 90,
-                        decoration:
-                        BoxDecoration(border: Border.all(color: Colors.grey)),
-                        child: Center(
-                          child: Text("Attach",style: TextStyle(
-                              color: Colors.grey
-                          ),),
-                        ),
+                      TextField(
+                        onChanged: (value) {
+                          setState(() {
+                            valueText = value;
+                          });
+                        },
+                        controller: _textFieldController,
+                        decoration: InputDecoration(hintText: "Sub Service Title"),
                       ),
-                    ),
-                    SizedBox(height: 10,),
-                    if(imgFile!=null)
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+                      TextField(
+                        onChanged: (value) {
+                          setState(() {
+                            valueprice = value;
+                          });
+                        },
+                        controller: _textPriceFieldController,
+                        decoration: InputDecoration(hintText: "Price"),
+                      ),
+                      SizedBox(height: 10,),
+                      Column(
                         children: [
-                          Text(imgFile.name,style: TextStyle(fontSize: 12),),
+                          InkWell(
+                            onTap: ()async{
+                              final res = await FilePicker.platform.pickFiles(type: FileType.image);
+                              final file = res.files.first;
+                              setState(() {
+                                imgFile=file;
+                              });
+
+                            },
+                            child: Container(
+                              height: 30,
+                              width: 90,
+                              decoration:
+                              BoxDecoration(border: Border.all(color: Colors.grey)),
+                              child: Center(
+                                child: Text("Attach",style: TextStyle(
+                                    color: Colors.grey
+                                ),),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 10,),
+                          if(imgFile!=null)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(imgFile.name,style: TextStyle(fontSize: 12),),
+                              ],
+                            ),
+
                         ],
-                      ),
+                      )
+                    ],
+                  ),
+                  actions: <Widget>[
+                    FlatButton(
+                      color: Colors.white,
+                      textColor: Colors.red,
+                      child: Text('CANCEL'),
+                      onPressed: () {
+                        setState(() {
 
+                          Navigator.pop(context);
+                          _textFieldController.clear();
+                          _textPriceFieldController.clear();
+                        });
+                      },
+                    ),
+                    FlatButton(
+                      color: Colors.red[300],
+                      textColor: Colors.white,
+                      child: Text('OK'),
+                      onPressed: () {
+                        setState(() {
+                          print(widget.index);
+                          storeImage();
+                          Navigator.pop(context);
+                          _textFieldController.clear();
+                          _textPriceFieldController.clear();
+                        });
+                      },
+                    ),
                   ],
-                )
-              ],
-            ),
-            actions: <Widget>[
-              FlatButton(
-                color: Colors.white,
-                textColor: Colors.red,
-                child: Text('CANCEL'),
-                onPressed: () {
-                  setState(() {
+                );
+              }
 
-                    Navigator.pop(context);
-                    _textFieldController.clear();
-                    _textPriceFieldController.clear();
-                  });
-                },
-              ),
-              FlatButton(
-                color: Colors.red[300],
-                textColor: Colors.white,
-                child: Text('OK'),
-                onPressed: () {
-                  setState(() {
-                    print(widget.index);
-                    storeImage();
-                    Navigator.pop(context);
-                    _textFieldController.clear();
-                    _textPriceFieldController.clear();
-                  });
-                },
-              ),
-            ],
           );
         });
   }
@@ -199,19 +208,56 @@ class _AddSubServicePageState extends State<AddSubServicePage> {
   Widget ListBuilder(snapshot)
   {
     return ListView.builder(
+
         itemCount: snapshot.data.docs.length,
         itemBuilder: (context,index){
+          print(snapshot.data.docs.length);
           return Column(
             children: [
               Container(
                 height:90,
-                child: ListTile(
-                  title: Text(snapshot.data.docs[index].data()["name"]),
-                  leading: CircleAvatar(
-                    radius: 90,
-                    backgroundImage: NetworkImage(snapshot.data.docs[index].data()["imgURL"]),
+                decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.74),
+                    image: DecorationImage(
+                        image: NetworkImage(
+                            snapshot.data.docs[index].data()["imgURL"]),
+                        fit: BoxFit.cover)),
+
+                child: Center(
+                  child: ListTile(
+                      title: Container(
+                          color: Colors.white.withOpacity(0.75),
+
+                          child: Text(snapshot.data.docs[index].data()["name"]+"  Rs. "+snapshot.data.docs[index].data()["price"])
+                      ),
+
+                      trailing: Container(
+                        color: Colors.white.withOpacity(0.75),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                                onPressed: (){
+                                  DataBase().deleteSubService(widget.index, index);
+                                },
+                                icon: Icon(Icons.delete)
+                            ),
+                            IconButton(
+                                onPressed: ()async{
+                                  await _displayUpdatedTextInputDialog(context,
+                                      snapshot.data.docs[index].data()["name"],
+                                      snapshot.data.docs[index].data()["price"],
+                                      snapshot.data.docs[index].data()["imgURL"],
+                                      index);
+                                },
+                                icon: Icon(Icons.update)
+                            ),
+
+                          ],
+                        ),
+                      )
+
                   ),
-                  trailing: Text("Rs. ${snapshot.data.docs[index].data()["price"]}"),
                 ),
               ),
               Divider(thickness: 2,)
@@ -219,6 +265,135 @@ class _AddSubServicePageState extends State<AddSubServicePage> {
           );
         }
     );
+  }
+  Future<void> _displayUpdatedTextInputDialog(BuildContext context,String title,String price,String img,int index) async {
+    setState(() {
+      imgFile=null;
+      _textFieldController.text=title;
+      _textPriceFieldController.text=price;
+    });
+    return showDialog(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context,setState)
+              {
+                return AlertDialog(
+
+                  title: Text('Update Sub Service'),
+                  content: Column(
+                    children: [
+
+                      TextField(
+                        onChanged: (value) {
+                          setState(() {
+                            valueText = value;
+                            valueText=_textFieldController.text;
+                          });
+                        },
+                        controller: _textFieldController,
+                        decoration: InputDecoration(hintText: "Sub Service Title"),
+                      ),
+
+                      TextField(
+                        onChanged: (value) {
+                          setState(() {
+                            valueprice = value;
+                            valueprice=_textPriceFieldController.text;
+                          });
+                        },
+                        controller: _textPriceFieldController,
+                        decoration: InputDecoration(hintText: "Price"),
+                      ),
+                      SizedBox(height: 10,),
+                      Column(
+                        children: [
+                          InkWell(
+                            onTap: ()async{
+                              final res = await FilePicker.platform.pickFiles(type: FileType.image);
+                              final file = res.files.first;
+                              setState(() {
+                                imgFile=file;
+                              });
+
+                            },
+                            child: Container(
+                              height: 30,
+                              width: 90,
+                              decoration:
+                              BoxDecoration(border: Border.all(color: Colors.grey)),
+                              child: Center(
+                                child: Text("Attach",style: TextStyle(
+                                    color: Colors.grey
+                                ),),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 10,),
+                          if(imgFile!=null)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(imgFile.name,style: TextStyle(fontSize: 12),),
+                              ],
+                            ),
+                          Container(
+                            height: 150.0,
+                            width: 150.0,
+                            decoration: BoxDecoration(
+                              image: DecorationImage(
+                                image: NetworkImage(img),
+                                fit: BoxFit.cover,
+                              ),
+                              //shape: BoxShape.circle,
+                            ),
+                          ),
+
+                        ],
+                      )
+                    ],
+                  ),
+                  actions: <Widget>[
+                    FlatButton(
+                      color: Colors.white,
+                      textColor: Colors.red,
+                      child: Text('CANCEL'),
+                      onPressed: () {
+                        setState(() {
+
+                          Navigator.pop(context);
+                          _textFieldController.clear();
+                          _textPriceFieldController.clear();
+                        });
+                      },
+                    ),
+                    FlatButton(
+                      color: Colors.red[300],
+                      textColor: Colors.white,
+                      child: Text('OK'),
+                      onPressed: () {
+                        setState(() {
+                          if(imgFile!=null)
+                          {
+                            storeImage();
+                          }
+                          else
+                          {
+                            DataBase().updateSubService(valueText, valueprice,img, widget.index, index);
+                          }
+
+                          Navigator.pop(context);
+                          _textFieldController.clear();
+                          _textPriceFieldController.clear();
+                        });
+                      },
+                    ),
+                  ],
+                );
+              }
+
+          );
+        });
   }
 
 }
