@@ -1,8 +1,14 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:handyman_admin/repo/firebase_repo.dart';
 class AddSubServicePage extends StatefulWidget {
   String title;
   List subService;
-  AddSubServicePage({Key key, this.title,this.subService}) : super(key: key);
+  int index;
+  AddSubServicePage({Key key, this.title,this.subService,this.index}) : super(key: key);
 
   @override
   _AddSubServicePageState createState() => _AddSubServicePageState();
@@ -11,13 +17,17 @@ class AddSubServicePage extends StatefulWidget {
 class _AddSubServicePageState extends State<AddSubServicePage> {
   String valueText = "";
   String valueprice = "";
+  PlatformFile imgFile;
+  String uploadPath="";
   TextEditingController _textFieldController = TextEditingController();
   TextEditingController _textPriceFieldController = TextEditingController();
+  Stream res;
   Future<void> _displayTextInputDialog(BuildContext context) async {
     return showDialog(
         context: context,
         builder: (context) {
           return AlertDialog(
+
             title: Text('Add Sub Service'),
             content: Column(
               children: [
@@ -31,7 +41,7 @@ class _AddSubServicePageState extends State<AddSubServicePage> {
                   controller: _textFieldController,
                   decoration: InputDecoration(hintText: "Sub Service Title"),
                 ),
-                SizedBox(height: 10,),
+
                 TextField(
                   onChanged: (value) {
                     setState(() {
@@ -41,6 +51,41 @@ class _AddSubServicePageState extends State<AddSubServicePage> {
                   controller: _textPriceFieldController,
                   decoration: InputDecoration(hintText: "Price"),
                 ),
+                SizedBox(height: 10,),
+                Column(
+                  children: [
+                    InkWell(
+                      onTap: ()async{
+                        final res = await FilePicker.platform.pickFiles(type: FileType.image);
+                        final file = res.files.first;
+                        setState(() {
+                          imgFile=file;
+                        });
+
+                      },
+                      child: Container(
+                        height: 30,
+                        width: 90,
+                        decoration:
+                        BoxDecoration(border: Border.all(color: Colors.grey)),
+                        child: Center(
+                          child: Text("Attach",style: TextStyle(
+                              color: Colors.grey
+                          ),),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 10,),
+                    if(imgFile!=null)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(imgFile.name,style: TextStyle(fontSize: 12),),
+                        ],
+                      ),
+
+                  ],
+                )
               ],
             ),
             actions: <Widget>[
@@ -53,6 +98,7 @@ class _AddSubServicePageState extends State<AddSubServicePage> {
 
                     Navigator.pop(context);
                     _textFieldController.clear();
+                    _textPriceFieldController.clear();
                   });
                 },
               ),
@@ -62,18 +108,42 @@ class _AddSubServicePageState extends State<AddSubServicePage> {
                 child: Text('OK'),
                 onPressed: () {
                   setState(() {
-                    widget.subService.add({
-                      "name":valueText,
-                      "price":valueprice
-                    });
+                    print(widget.index);
+                    storeImage();
                     Navigator.pop(context);
                     _textFieldController.clear();
+                    _textPriceFieldController.clear();
                   });
                 },
               ),
             ],
           );
         });
+  }
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    getSubServices();
+  }
+  Future<void> storeImage()async{
+    FirebaseStorage firebaseStorage=FirebaseStorage.instance;
+    Reference reference=firebaseStorage.ref().child("SubServiceImages").child(imgFile.name);
+    UploadTask uploadTask=reference.putFile(File(imgFile.path));
+    uploadTask.snapshotEvents.listen((event) { });
+
+    await uploadTask.whenComplete(() async{
+      uploadPath=await uploadTask.snapshot.ref.getDownloadURL();
+      DataBase().addSubService(valueText,valueprice,uploadPath , widget.index);
+    });
+
+  }
+  void getSubServices()async
+  {
+    res=await DataBase().getSubService(widget.index);
+    setState(() {
+
+    });
   }
   @override
   Widget build(BuildContext context) {
@@ -110,20 +180,14 @@ class _AddSubServicePageState extends State<AddSubServicePage> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
-                child: ListView.builder(
-                    itemCount: widget.subService.length,
-                    itemBuilder: (context,index){
-                      return Column(
-                        children: [
-                          ListTile(
-                            title: Text(widget.subService[index]["name"]),
-                            leading: Icon(Icons.design_services),
-                            trailing: Text("Rs. ${widget.subService[index]["price"]}"),
-                          ),
-                          Divider(thickness: 2,)
-                        ],
-                      );
+                child: StreamBuilder(
+                  stream: res,
+                  builder: (context, AsyncSnapshot snapshot) {
+                    if (snapshot.data == null) {
+                      return Scaffold();
                     }
+                    return ListBuilder(snapshot);
+                  },
                 ),
               ),
             )
@@ -132,4 +196,29 @@ class _AddSubServicePageState extends State<AddSubServicePage> {
       ),
     );
   }
+  Widget ListBuilder(snapshot)
+  {
+    return ListView.builder(
+        itemCount: snapshot.data.docs.length,
+        itemBuilder: (context,index){
+          return Column(
+            children: [
+              Container(
+                height:90,
+                child: ListTile(
+                  title: Text(snapshot.data.docs[index].data()["name"]),
+                  leading: CircleAvatar(
+                    radius: 90,
+                    backgroundImage: NetworkImage(snapshot.data.docs[index].data()["imgURL"]),
+                  ),
+                  trailing: Text("Rs. ${snapshot.data.docs[index].data()["price"]}"),
+                ),
+              ),
+              Divider(thickness: 2,)
+            ],
+          );
+        }
+    );
+  }
+
 }

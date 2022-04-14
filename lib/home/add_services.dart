@@ -1,5 +1,11 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:handyman_admin/constants.dart';
+import 'package:handyman_admin/repo/firebase_repo.dart';
+
 
 import 'add_subservice_page.dart';
 class AddServicesPage extends StatefulWidget {
@@ -13,50 +19,132 @@ class _AddServicesPageState extends State<AddServicesPage> {
   List<String> services=Constants().services;
   List toSend=[];
   String valueText = "";
+  Stream res;
   TextEditingController _textFieldController = TextEditingController();
+  PlatformFile imgFile;
+  String uploadPath="";
+
   Future<void> _displayTextInputDialog(BuildContext context) async {
+    setState(() {
+      imgFile=null;
+    });
     return showDialog(
         context: context,
         builder: (context) {
-          return AlertDialog(
-            title: Text('Add Service'),
-            content: TextField(
-              onChanged: (value) {
-                setState(() {
-                  valueText = value;
-                });
-              },
-              controller: _textFieldController,
-              decoration: InputDecoration(hintText: "Service Title"),
-            ),
-            actions: <Widget>[
-              FlatButton(
-                color: Colors.white,
-                textColor: Colors.red,
-                child: Text('CANCEL'),
-                onPressed: () {
-                  setState(() {
+          return StatefulBuilder(
+            builder: (context,setState){
+              return AlertDialog(
+                title: Text('Add Service'),
+                content: Column(
+                  children: [
+                    TextField(
+                      onChanged: (value) {
+                        setState(() {
+                          valueText = value;
+                        });
+                      },
+                      controller: _textFieldController,
+                      decoration: InputDecoration(hintText: "Service Title"),
+                    ),
+                    SizedBox(height: 10,),
+                    Column(
+                      children: [
+                        InkWell(
+                          onTap: ()async{
+                            final res = await FilePicker.platform.pickFiles(type: FileType.image);
+                            final file = res.files.first;
+                            setState(() {
+                              imgFile=file;
+                            });
 
-                    Navigator.pop(context);
-                    _textFieldController.clear();
-                  });
-                },
-              ),
-              FlatButton(
-                color: Colors.red[300],
-                textColor: Colors.white,
-                child: Text('OK'),
-                onPressed: () {
-                  setState(() {
-                    services.add(valueText);
-                    Navigator.pop(context);
-                    _textFieldController.clear();
-                  });
-                },
-              ),
-            ],
+                          },
+                          child: Container(
+                            height: 30,
+                            width: 90,
+                            decoration:
+                            BoxDecoration(border: Border.all(color: Colors.grey)),
+                            child: Center(
+                              child: Text("Attach",style: TextStyle(
+                                  color: Colors.grey
+                              ),),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 10,),
+                        if(imgFile!=null)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(imgFile.name,style: TextStyle(fontSize: 12),),
+                            ],
+                          ),
+
+                      ],
+                    )
+                  ],
+                ),
+                actions: <Widget>[
+                  FlatButton(
+                    color: Colors.white,
+                    textColor: Colors.red,
+                    child: Text('CANCEL'),
+                    onPressed: () {
+                      setState(() {
+
+                        Navigator.pop(context);
+                        _textFieldController.clear();
+                      });
+                    },
+                  ),
+                  FlatButton(
+                    color: Colors.red[300],
+                    textColor: Colors.white,
+                    child: Text('OK'),
+                    onPressed: () {
+                      setState(() {
+                        //services.add(valueText);
+
+                        if(imgFile!=null){
+                          storeImage();
+                        }
+
+                        Navigator.pop(context);
+                        _textFieldController.clear();
+                      });
+                    },
+                  ),
+                ],
+              );
+            }
+
           );
         });
+  }
+
+  @override
+  void initState(){
+    // TODO: implement initState
+    super.initState();
+    getServices();
+  }
+  Future<void> storeImage()async{
+    FirebaseStorage firebaseStorage=FirebaseStorage.instance;
+    Reference reference=firebaseStorage.ref().child("ServiceImages").child(imgFile.name);
+    UploadTask uploadTask=reference.putFile(File(imgFile.path));
+    uploadTask.snapshotEvents.listen((event) { });
+
+    await uploadTask.whenComplete(() async{
+      uploadPath=await uploadTask.snapshot.ref.getDownloadURL();
+      DataBase().addService(valueText,uploadPath);
+    });
+
+  }
+  void getServices()async{
+    res=await DataBase().getServices();
+    setState(() {
+
+    });
+
   }
   @override
   Widget build(BuildContext context) {
@@ -93,69 +181,14 @@ class _AddServicesPageState extends State<AddServicesPage> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
-                child: ListView.builder(
-
-                  itemCount: services.length,
-                    itemBuilder: (context,index){
-                    return Column(
-                      children: [
-                        ListTile(
-                          title: Text(services[index]),
-                          leading: Icon(Icons.design_services),
-                          onTap: (){
-                            if(services[index].contains("AC"))
-                              {
-                                toSend=Constants().acSubServices;
-                              }
-                            if(services[index].contains("Car Services"))
-                            {
-                              toSend=Constants().carSubServices;
-                            }
-                            if(services[index].contains("Carpenter"))
-                            {
-                              toSend=Constants().carpSubServices;
-                            }
-                            if(services[index].contains("Cleaning"))
-                            {
-                              toSend=Constants().cleaningSubServices;
-                            }
-                            if(services[index].contains("Handy"))
-                            {
-                              toSend=Constants().handySubServices;
-                            }
-                            if(services[index].contains("Geyser"))
-                            {
-                              toSend=Constants().geyserSubServices;
-                            }
-                            if(services[index].contains("Elect"))
-                            {
-                              toSend=Constants().electSubServices;
-                            }
-                            if(services[index].contains("Home"))
-                            {
-                              toSend=Constants().homeSubServices;
-                            }
-                            if(services[index].contains("Plumb"))
-                            {
-                              toSend=Constants().plumbSubServices;
-                            }
-                            if(services[index].contains("Paint"))
-                            {
-                              toSend=Constants().paintSubServices;
-                            }
-
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => AddSubServicePage(title: services[index],subService: toSend,)
-                                ));
-                          },
-
-                        ),
-                        Divider(thickness: 2,)
-                      ],
-                    );
+                child:StreamBuilder(
+                  stream: res,
+                  builder: (context, AsyncSnapshot snapshot) {
+                    if (snapshot.data == null) {
+                      return Scaffold();
                     }
+                    return ListBuilder(snapshot);
+                  },
                 ),
               ),
             )
@@ -163,5 +196,50 @@ class _AddServicesPageState extends State<AddServicesPage> {
         ),
       ),
     );
+  }
+  Widget ListBuilder(snapshot)
+  {
+    return ListView.builder(
+
+        itemCount: snapshot.data.docs.length,
+        itemBuilder: (context,index){
+          print(snapshot.data.docs.length);
+          return Column(
+            children: [
+              Container(
+                height:90,
+
+                child: Center(
+                  child: ListTile(
+                    title: Text(snapshot.data.docs[index].data()["name"]),
+                    leading: Icon(Icons.design_services),
+                    onTap: (){
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => AddSubServicePage(title: snapshot.data.docs[index].data()["name"],index: index,)
+                          ));
+                    },
+                    trailing: Container(
+                      height: 90.0,
+                      width: 120.0,
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: NetworkImage(snapshot.data.docs[index].data()["imgURL"]),
+                          fit: BoxFit.cover,
+                        ),
+                        //shape: BoxShape.circle,
+                      ),
+                    )
+
+                  ),
+                ),
+              ),
+              Divider(thickness: 2,)
+            ],
+          );
+        }
+    );
+
   }
 }
