@@ -17,10 +17,12 @@ class AddSubServicePage extends StatefulWidget {
 class _AddSubServicePageState extends State<AddSubServicePage> {
   String valueText = "";
   String valueprice = "";
+  String description='';
   PlatformFile imgFile;
   String uploadPath="";
   TextEditingController _textFieldController = TextEditingController();
   TextEditingController _textPriceFieldController = TextEditingController();
+  TextEditingController _textDescriptionController=TextEditingController();
   Stream res;
   Future<void> _displayTextInputDialog(BuildContext context) async {
     setState(() {
@@ -56,6 +58,15 @@ class _AddSubServicePageState extends State<AddSubServicePage> {
                         },
                         controller: _textPriceFieldController,
                         decoration: InputDecoration(hintText: "Price"),
+                      ),
+                      TextField(
+                        onChanged: (value) {
+                          setState(() {
+                            description = value;
+                          });
+                        },
+                        controller: _textDescriptionController,
+                        decoration: InputDecoration(hintText: "Description"),
                       ),
                       SizedBox(height: 10,),
                       Column(
@@ -143,7 +154,8 @@ class _AddSubServicePageState extends State<AddSubServicePage> {
 
     await uploadTask.whenComplete(() async{
       uploadPath=await uploadTask.snapshot.ref.getDownloadURL();
-      DataBase().addSubService(valueText,valueprice,uploadPath , widget.index);
+
+      DataBase().addSubService(valueText,valueprice,description,uploadPath , widget.index);
     });
 
   }
@@ -379,12 +391,13 @@ class _AddSubServicePageState extends State<AddSubServicePage> {
                           }
                           else
                           {
-                            DataBase().updateSubService(valueText, valueprice,img, widget.index, index);
+                            DataBase().updateSubService(valueText, valueprice,description,img, widget.index, index);
                           }
 
                           Navigator.pop(context);
                           _textFieldController.clear();
                           _textPriceFieldController.clear();
+                          _textDescriptionController.clear();
                         });
                       },
                     ),

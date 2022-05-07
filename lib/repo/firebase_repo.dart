@@ -49,13 +49,14 @@ class DataBase{
     }
     return "0";
   }
-  Future<void> addSubService(String subServiceName,String price,String imgURL,int i) async
+  Future<void> addSubService(String subServiceName,String price,String description,String imgURL,int i) async
   {
     try{
       String id=await docId(i);
       await db.collection("Services").doc(id).collection("SubServices").add({
         'name': subServiceName,
         'price': price,
+        'description':description,
         'imgURL':imgURL
       });
     }catch(e){
@@ -67,7 +68,7 @@ class DataBase{
     String id=await docId(i);
     return db.collection("Services").doc(id).collection("SubServices").snapshots();
   }
-  Future<void> updateSubService(String subServiceName,String price,String imgURL,int mainid,int subid)async{
+  Future<void> updateSubService(String subServiceName,String price,String description,String imgURL,int mainid,int subid)async{
     try{
       String id1=await docId(mainid);
       String id2=await getSubdocId(mainid,subid);
@@ -76,6 +77,7 @@ class DataBase{
           {
             'name': subServiceName,
             'price': price,
+            'description':description,
             'imgURL':imgURL
           }
       );
